@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebToEPUB</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 380px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8f9fa;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 18px; color: #333; }
+    .stats { 
+      background: white; 
+      padding: 8px 12px; 
+      border-radius: 8px; 
+      font-size: 14px; 
+      color: #666; 
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-primary:hover:not(:disabled) { background: #0056b3; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-success:hover:not(:disabled) { background: #1e7e34; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-danger:hover:not(:disabled) { background: #c82333; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    #page-list {
+      max-height: 280px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 8px;
+      margin: 12px 0;
+    }
+    .page-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: move;
+    }
+    .page-item:last-child { border-bottom: none; }
+    .drag-handle { 
+      color: #999; 
+      font-size: 18px; 
+      cursor: grab; 
+      user-select: none;
+    }
+    .page-item.dragging { opacity: 0.7; transform: rotate(2deg); }
+    .page-info { flex: 1; }
+    .page-title { 
+      font-weight: 500; 
+      font-size: 14px; 
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .page-meta { 
+      font-size: 12px; 
+      color: #666; 
+      margin-top: 2px;
+    }
+    .remove-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #dc3545;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-style: italic;
+    }
+    .tip {
+      background: #e7f3ff;
+      border-left: 4px solid #007bff;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 13px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📚 WebToEPUB</h1>
+    <div class="stats" id="stats">
+      0 pagine • 0 parole
+    </div>
+  </div>
+
+  <button id="add-page" class="btn-primary">
+    ➕ Aggiungi pagina corrente
+  </button>
+
+  <div id="page-list">
+    <div class="empty-state">
+      Nessuna pagina salvata<br>
+      <small>Clicca sopra per iniziare</small>
+    </div>
+  </div>
+
+  <button id="generate-epub" class="btn-success" disabled>
+    📖 Genera EPUB
+  </button>
+
+  <div class="tip">
+    <strong>Per Xteink X4:</strong><br>
+    1. Genera EPUB → salva sul PC<br>
+    2. X4: Settings → Hotspot ON<br>
+    3. PC: http://192.168.4.1 → upload!
+  </div>
+
+  <button id="clear-all" class="btn-danger" disabled>
+    🗑️ Cancella tutto
+  </button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

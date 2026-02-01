@@ -14,7 +14,12 @@
     "companion:start": "node companion-app/server.js",
     "companion:dev": "nodemon companion-app/server.js"
   },
-  "keywords": ["chrome-extension", "epub", "ereader", "web-to-epub"],
+  "keywords": [
+    "chrome-extension",
+    "epub",
+    "ereader",
+    "web-to-epub"
+  ],
   "author": "Il Tuo Nome",
   "license": "MIT",
   "devDependencies": {
@@ -33,7 +38,8 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.5.0",
-    "epub-gen-memory": "^1.1.0",
-    "jsdom": "^23.0.0"
+    "epub-gen-memory": "^1.1.2",
+    "jsdom": "^23.0.0",
+    "jszip": "^3.10.1"
   }
 }

@@ -1,22 +1,32 @@
 {
   "manifest_version": 3,
-  "name": "WebToEPUB Xteink",
+  "name": "WebToXteink",
   "version": "1.0.0",
-  "description": "Web → EPUB per Xteink X4",
-  "permissions": ["storage", "downloads", "activeTab"],
-  "host_permissions": ["<all_urls>"],
-  "action": {"default_popup": "popup.html"},
-  "background": {"service_worker": "background.js"},
+  "description": "Converti pagine web in EPUB e invia a Xteink X4",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "downloads",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://192.168.3.3/*",
+    "http://192.168.4.1/*",
+    "http://192.168.*.*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "WebToXteink"
+  },
   "content_scripts": [
-  {
-    "matches": ["<all_urls>"],
-    "js": ["content.js"],
-    "run_at": "document_end"
-  }
-],
-"web_accessible_resources": [{
-    "resources": ["lib/jszip.min.js"],
-    "matches": ["<all_urls>"]
-  }]
-
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

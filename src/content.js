@@ -1,9 +1,12 @@
-// content.js - Estrazione UNIVERSALE senza librerie
+// content.js - Con supporto JSON-LD per siti come Il Sole 24 Ore
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractPage') {
     try {
-      const result = extractCleanContent();
-      sendResponse(result);
+      setTimeout(() => {
+        const result = extractCleanContent();
+        sendResponse(result);
+      }, 1500); // Aumenta timeout per caricamento dinamico
+      return true;
     } catch (error) {
       sendResponse({ 
         error: error.message,
@@ -17,78 +20,327 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function extractCleanContent() {
-  // 1. Trova articolo principale (euristica intelligente)
-  const selectors = [
-    'article',
-    '.article, .post, .story',
-    '.content, .entry-content',
-    'main',
-    '[role="main"]',
-    document.body
-  ];
-
-  let article = null;
-  for (const selector of selectors) {
-    article = document.querySelector(selector);
-    if (article && article.children.length > 3) break;
+  // 1. Prova prima a estrarre da JSON-LD (per siti come Il Sole 24 Ore)
+  const jsonLdContent = extractFromJsonLd();
+  if (jsonLdContent) {
+    return jsonLdContent;
   }
 
-  if (!article) article = document.body;
+  // 2. Fallback: estrazione HTML normale
+  let article = document.querySelector('.atext') || // Il Sole 24 Ore
+                document.querySelector('.art_content') ||
+                document.querySelector('.article-body') ||
+                document.querySelector('[data-testid="article-body"]') ||
+                document.querySelector('.font-nunito.font-nunito') ||
+                document.querySelector('[id*="widget-parent"]') ||
+                document.querySelector('.markdown-viewer') ||
+                document.querySelector('article') ||
+                document.querySelector('main') ||
+                document.querySelector('[role="main"]') ||
+                document.querySelector('.content');
 
-  // 2. Clona e pulisci (rimuovi schifezze)
-  const cleanClone = article.cloneNode(true);
+  if (!article) {
+    const candidates = Array.from(document.querySelectorAll('div')).filter(div => {
+      const paragraphs = div.querySelectorAll('p');
+      return paragraphs.length > 3;
+    });
+    article = candidates.sort((a, b) => 
+      b.querySelectorAll('p').length - a.querySelectorAll('p').length
+    )[0] || document.body;
+  }
+
+  // 3. Set per tracciare elementi già processati
+  const processedElements = new Set();
+  const cleanClone = document.createElement('div');
   
-  // Rimuovi elementi inutili
-  const trashSelectors = [
-    'nav', 'header', 'footer', 'aside', 'script', 'style',
-    '.ad, .ads, [class*="ad-"]', '.sidebar', '[id*="ad"]',
-    '.social', '.share', '.comment', 'iframe'
-  ];
+  const contentElements = article.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, code, img, figure, strong, em, b, i');
   
-  trashSelectors.forEach(sel => {
-    cleanClone.querySelectorAll(sel).forEach(el => el.remove());
+  contentElements.forEach(el => {
+    if (processedElements.has(el)) return;
+    
+    let parent = el.parentElement;
+    while (parent && parent !== article) {
+      if (processedElements.has(parent)) return;
+      parent = parent.parentElement;
+    }
+    
+    if (el.closest('nav, header, footer, aside, .breadcrumb, [class*="breadcrumb"]')) {
+      return;
+    }
+    
+    if (el.tagName.toLowerCase() === 'img') {
+      const imgClone = cleanImage(el);
+      if (imgClone) {
+        cleanClone.appendChild(imgClone);
+        processedElements.add(el);
+      }
+      return;
+    }
+    
+    if (el.tagName.toLowerCase() === 'figure') {
+      const figClone = cleanFigure(el);
+      if (figClone) {
+        cleanClone.appendChild(figClone);
+        processedElements.add(el);
+        el.querySelectorAll('img').forEach(img => processedElements.add(img));
+      }
+      return;
+    }
+    
+    if (el.tagName.toLowerCase() === 'ul' || el.tagName.toLowerCase() === 'ol') {
+      const cleaned = cleanElement(el);
+      if (cleaned) {
+        cleanClone.appendChild(cleaned);
+        processedElements.add(el);
+        el.querySelectorAll('*').forEach(child => processedElements.add(child));
+      }
+      return;
+    }
+    
+    const text = el.textContent.trim();
+    if (text.length < 10 && !['pre', 'code', 'strong', 'em', 'b', 'i'].includes(el.tagName.toLowerCase())) {
+      return;
+    }
+    
+    const navKeywords = /^(home|back|next|previous|completed|ask a question|login|sign|menu|share|related|subscribe|we'll cover|abbonati|accedi|registrati)/i;
+    if (navKeywords.test(text)) return;
+    
+    const cleaned = cleanElement(el);
+    if (cleaned) {
+      cleanClone.appendChild(cleaned);
+      processedElements.add(el);
+    }
   });
 
-  // 3. Metadati
   const metadata = {
-    title: document.title.substring(0, 100) || 'Senza titolo',
+    title: extractMainTitle() || document.title.replace(/\s*\|.*$/, '').substring(0, 100) || 'Senza titolo',
     url: location.href,
     author: findAuthor(),
     siteName: location.hostname
   };
 
-  // 4. Conteggio parole
   const text = cleanClone.textContent || '';
   const wordCount = text.split(/\s+/).filter(w => w.length > 2).length;
 
-  // 5. Mantieni HTML leggibile
   let content = cleanClone.innerHTML;
   
-  // Pulizia finale
-  content = content
-    .replace(/<a[^>]*>([^<]+)<\/a>/g, '$1')  // Rimuovi link ma tieni testo
-    .replace(/&nbsp;/g, ' ')
-    .replace(/<br[^>]*>/g, '<br>');
+  if (!content.includes('<h1>')) {
+    content = `<h1>${metadata.title}</h1>\n${content}`;
+  }
+  
+  content = makeXHTMLCompliant(content);
 
   return {
     metadata,
     content,
-    wordCount: Math.min(wordCount, 50000),  // Limite performance
-    success: true
+    wordCount: Math.min(wordCount, 50000),
+    success: wordCount > 50
   };
 }
 
-function findAuthor() {
+// NUOVA FUNZIONE: Estrae contenuto da JSON-LD (Il Sole 24 Ore, ecc.)
+function extractFromJsonLd() {
+  const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+  
+  for (const script of jsonLdScripts) {
+    try {
+      const data = JSON.parse(script.textContent);
+      
+      // Cerca NewsArticle o Article
+      let articleData = data;
+      if (Array.isArray(data)) {
+        articleData = data.find(item => 
+          item['@type'] === 'NewsArticle' || item['@type'] === 'Article'
+        );
+      }
+      
+      if (!articleData || !articleData.articleBody) continue;
+      
+      // Estrai i dati
+      const title = articleData.headline || articleData.name || '';
+      const author = articleData.author?.name || articleData.author || '';
+      const datePublished = articleData.datePublished || '';
+      const articleBody = articleData.articleBody || '';
+      
+      if (!articleBody || articleBody.length < 100) continue;
+      
+      // Converti il testo in HTML paragrafi
+      const paragraphs = articleBody
+        .split(/\n\n+/)
+        .filter(p => p.trim().length > 20)
+        .map(p => `<p>${p.trim()}</p>`)
+        .join('\n');
+      
+      const content = `<h1>${title}</h1>\n${paragraphs}`;
+      const wordCount = articleBody.split(/\s+/).filter(w => w.length > 2).length;
+      
+      return {
+        metadata: {
+          title: title,
+          url: location.href,
+          author: author || 'Autore sconosciuto',
+          siteName: location.hostname,
+          datePublished: datePublished
+        },
+        content: makeXHTMLCompliant(content),
+        wordCount: wordCount,
+        success: true,
+        extractedFrom: 'JSON-LD'
+      };
+      
+    } catch (e) {
+      console.log('Errore parsing JSON-LD:', e);
+      continue;
+    }
+  }
+  
+  return null;
+}
+
+function cleanImage(img) {
+  const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+  
+  if (!src || src.includes('icon') || src.includes('logo') || src.includes('avatar')) {
+    return null;
+  }
+  
+  const wrapper = document.createElement('div');
+  wrapper.setAttribute('class', 'image-wrapper');
+  
+  const cleanImg = document.createElement('img');
+  cleanImg.src = src;
+  
+  const alt = img.alt || img.title || '';
+  if (alt) {
+    cleanImg.alt = alt;
+  }
+  
+  wrapper.appendChild(cleanImg);
+  return wrapper;
+}
+
+function cleanFigure(figure) {
+  const img = figure.querySelector('img');
+  if (!img) return null;
+  
+  const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+  
+  if (!src || src.includes('icon') || src.includes('logo') || src.includes('avatar')) {
+    return null;
+  }
+  
+  const cleanFig = document.createElement('div');
+  cleanFig.setAttribute('class', 'figure');
+  
+  const imgWrapper = document.createElement('div');
+  const cleanImg = document.createElement('img');
+  cleanImg.src = src;
+  
+  const alt = img.alt || img.title || '';
+  if (alt) {
+    cleanImg.alt = alt;
+  }
+  
+  imgWrapper.appendChild(cleanImg);
+  cleanFig.appendChild(imgWrapper);
+  
+  const caption = figure.querySelector('figcaption');
+  if (caption && caption.textContent.trim()) {
+    const cleanCap = document.createElement('p');
+    cleanCap.setAttribute('class', 'caption');
+    cleanCap.textContent = caption.textContent.trim();
+    cleanFig.appendChild(cleanCap);
+  }
+  
+  return cleanFig;
+}
+
+function cleanElement(el) {
+  const tagName = el.tagName.toLowerCase();
+  const text = el.textContent.trim();
+  
+  if (!text || (text.length < 10 && !['pre', 'code', 'strong', 'em', 'b', 'i'].includes(tagName))) {
+    return null;
+  }
+  
+  const clean = document.createElement(tagName);
+  
+  if (tagName === 'ul' || tagName === 'ol') {
+    const items = el.querySelectorAll(':scope > li');
+    items.forEach(li => {
+      const liText = li.textContent.trim();
+      if (liText.length > 5) {
+        const newLi = document.createElement('li');
+        newLi.textContent = liText;
+        clean.appendChild(newLi);
+      }
+    });
+    return clean.children.length > 0 ? clean : null;
+  }
+  
+  if (tagName === 'pre' || tagName === 'code') {
+    clean.textContent = text;
+    return clean;
+  }
+  
+  clean.textContent = text;
+  return clean;
+}
+
+function makeXHTMLCompliant(html) {
+  return html
+    .replace(/<img([^>]*[^/])>/gi, '<img$1 />')
+    .replace(/<img>/gi, '<img />')
+    .replace(/<br([^>]*[^/])>/gi, '<br$1 />')
+    .replace(/<br>/gi, '<br />')
+    .replace(/<hr([^>]*[^/])>/gi, '<hr$1 />')
+    .replace(/<hr>/gi, '<hr />')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/g, '</p><p>')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function extractMainTitle() {
   const selectors = [
-    'meta[name="author"]',
-    '.author, .byline',
-    '[rel="author"]'
+    'h1.aentry-title', // Il Sole 24 Ore
+    'h1.art_title',
+    'h1.heading-one',
+    'article h1:first-of-type',
+    'main h1:first-of-type',
+    '.article-title, .post-title, .entry-title',
+    'h1.title',
+    'h1'
   ];
   
   for (const sel of selectors) {
     const el = document.querySelector(sel);
     if (el) {
-      return el.getAttribute('content') || el.textContent?.trim().substring(0, 50);
+      const text = el.textContent.trim();
+      if (text.length > 10 && text.length < 200 && !/home|menu|login/i.test(text)) {
+        return text;
+      }
+    }
+  }
+  return null;
+}
+
+function findAuthor() {
+  const selectors = [
+    'meta[name="author"]',
+    'meta[property="article:author"]',
+    '.author-name, .byline, .auth',
+    '[rel="author"]',
+    '[itemprop="author"]'
+  ];
+  
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (el) {
+      const author = el.getAttribute('content') || el.textContent?.trim();
+      if (author && author.length > 2 && author.length < 100) {
+        return author.replace(/^(by|di)\s+/i, '');
+      }
     }
   }
   return 'Autore sconosciuto';

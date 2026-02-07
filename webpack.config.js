@@ -15,30 +15,29 @@ module.exports = (env, argv) => {
     },
     
     output: {
-      path: path.resolve(__dirname, 'dist'),  // ← Output in dist/
+      path: path.resolve(__dirname, 'dist'),
       filename: '[name].js',
-      clean: true  // Pulisce dist/ ad ogni build
+      clean: true
     },
     
     optimization: {
-      minimize: !isDev  // Solo production minifica
+      minimize: !isDev
     },
     
     plugins: [
       new CopyWebpackPlugin({
         patterns: [
           { from: 'public/manifest.json', to: 'manifest.json' },
-          { from: 'public/popup.html', to: 'popup.html' },
-          { from: 'public/icons', to: 'icons', noErrorOnMissing: true }
+          { from: 'public/popup.html', to: 'popup.html' }
         ]
       })
     ],
     
     resolve: {
       fallback: {
-        "buffer": false,
-        "stream": false,
-        "path": false
+        'buffer': false,
+        'stream': false,
+        'path': false
       }
     }
   };

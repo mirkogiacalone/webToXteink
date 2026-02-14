@@ -63,15 +63,13 @@ export class XteinkAPI {
       return {
         connected: false,
         error: error.name === 'TypeError' 
-          ? 'Verifica connessione Wi-Fi Xteink' 
-          : `Errore: ${error.message}`
+          ? 'Check Wi-Fi connection Xteink' 
+          : `Error: ${error.message}`
       };
     }
   }
 
-  /**
-   * ✅ METODO PRINCIPALE - Upload EPUB usando /edit endpoint
-   */
+
   async uploadEPUB(epubBuffer, filename, onProgress) {
     try {
       console.log('📤 Start upload EPUB');
@@ -168,7 +166,7 @@ export class XteinkAPI {
       console.log('📁 Create folder response:', response.status);
 
       if (response.ok) {
-        console.log('✅ Cartella creata');
+        console.log('✅ Folder created');
         return true;
       } else {
         const text = await response.text();
@@ -182,76 +180,86 @@ export class XteinkAPI {
     }
   }
 
-  async uploadFile(epubBuffer, path, onProgress) {
-    try {
-      const blob = new Blob([epubBuffer], { type: 'application/epub+zip' });
+async uploadFile(epubBuffer, path, onProgress) {
+  try {
+    const uint8Array = epubBuffer instanceof Uint8Array 
+      ? epubBuffer 
+      : new Uint8Array(epubBuffer);
+    
+    console.log('📦 Buffer type:', uint8Array.constructor.name);
+    console.log('📦 Buffer size:', uint8Array.length, 'bytes');
+    
+    const blob = new Blob([uint8Array], { type: 'application/epub+zip' });
+    
+    console.log('📦 Blob size:', blob.size, 'bytes');
+    
+    const filename = path.split('/').pop();
+    
+    const formData = new FormData();
+    formData.append('data', blob, path);
+
+    const uploadUrl = this.getBaseUrl() + this.settings.uploadEndpoint;
+    console.log('📤 POST file a:', uploadUrl);
+    console.log('📤 Path:', path);
+    console.log('📄 Filename:', filename);
+
+    if (onProgress) onProgress(50);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.settings.timeout);
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (onProgress) onProgress(90);
+
+    console.log('📥 Response status:', response.status);
+
+    if (response.ok) {
+      const responseText = await response.text();
+      console.log('✅ Upload completato!');
+      console.log('📄 Response:', responseText);
+
+      return {
+        success: true,
+        message: `EPUB uploaded in ${path}`,
+        path: path,
+        endpoint: this.settings.uploadEndpoint,
+        status: response.status
+      };
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Upload failed:', response.status, errorText);
       
-      const file = new File([blob], path, { type: 'application/epub+zip' });
-      
-      const formData = new FormData();
-      formData.append('data', file, path);
-
-      const uploadUrl = this.getBaseUrl() + this.settings.uploadEndpoint;
-      console.log('📤 POST file a:', uploadUrl);
-      console.log('📤 Path:', path);
-
-      if (onProgress) onProgress(50);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.settings.timeout);
-
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (onProgress) onProgress(90);
-
-      console.log('📥 Response status:', response.status);
-
-      if (response.ok) {
-        const responseText = await response.text();
-        console.log('✅ Upload completato!');
-        console.log('📄 Response:', responseText);
-
-        return {
-          success: true,
-          message: `EPUB caricato in ${path}`,
-          path: path,
-          endpoint: this.settings.uploadEndpoint,
-          status: response.status
-        };
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Upload fallito:', response.status, errorText);
-        
-        throw new Error(
-          `Upload fallito (${response.status}): ${errorText.substring(0, 200)}`
-        );
-      }
-
-    } catch (error) {
-      console.error('❌ Fetch error:', error);
-
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout upload (30s). Riprova o riduci dimensione EPUB.');
-      }
-
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        throw new Error(
-          'Impossibile raggiungere Xteink.\n' +
-          '1. Verifica connessione Wi-Fi (SSID: Xteink-...)\n' +
-          '2. IP corretto: ' + this.settings.ip + '\n' +
-          '3. Prova ad aprire http://' + this.settings.ip + ' nel browser'
-        );
-      }
-
-      throw error;
+      throw new Error(
+        `Upload failed (${response.status}): ${errorText.substring(0, 200)}`
+      );
     }
+
+  } catch (error) {
+    console.error('❌ Fetch error:', error);
+
+    if (error.name === 'AbortError') {
+      throw new Error('Timeout upload (30s)');
+    }
+
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error(
+        'Unable to reach Xteink.\n' +
+        '1. Check Wi-Fi connection (SSID: E-Paper...)\n' +
+        '2. Correct IP: ' + this.settings.ip + '\n' +
+        '3. Try opening http://' + this.settings.ip + ' in your browser'
+        );
+    }
+
+    throw error;
   }
+}
 
   async listFiles(directory = '/') {
     try {

@@ -318,7 +318,7 @@ async function uploadEPUBToXteink(filename) {
   
   const result = await xteinkAPI.uploadEPUB(
     lastGeneratedEPUB.buffer,
-    filename || lastGeneratedEPUB.filename,
+    lastGeneratedEPUB.filename || filename,
     (progress) => {
       console.log(`📤 Upload: ${progress}%`);
       chrome.runtime.sendMessage({ 

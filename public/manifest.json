@@ -20,7 +20,17 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "WebToXteink"
+    "default_title": "WebToXteink",
+    "default_icon": {
+      "16": "icon-v2-16.png",
+      "48": "icon-v2-48.png",
+      "128": "icon-v2-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-v2-16.png",
+    "48": "icon-v2-48.png",
+    "128": "icon-v2-128.png"
   },
   "content_scripts": [
     {

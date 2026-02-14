@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WebToXteink",
   "version": "1.0.0",
-  "description": "Converti pagine web in EPUB e invia a Xteink X4",
+  "description": "Convert web pages to EPUB and send to Xteink X4",
   "permissions": [
     "storage",
     "activeTab",

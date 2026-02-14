@@ -1,11 +1,11 @@
-// content.js - Con supporto JSON-LD per siti come Il Sole 24 Ore
+// content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractPage') {
     try {
       setTimeout(() => {
         const result = extractCleanContent();
         sendResponse(result);
-      }, 1500); // Aumenta timeout per caricamento dinamico
+      }, 1500);
       return true;
     } catch (error) {
       sendResponse({ 
@@ -20,14 +20,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function extractCleanContent() {
-  // 1. Prova prima a estrarre da JSON-LD (per siti come Il Sole 24 Ore)
+  // JSON-LD
   const jsonLdContent = extractFromJsonLd();
   if (jsonLdContent) {
     return jsonLdContent;
   }
 
-  // 2. Fallback: estrazione HTML normale
-  let article = document.querySelector('.atext') || // Il Sole 24 Ore
+  // 2. HTML
+  let article = document.querySelector('.atext') ||
                 document.querySelector('.art_content') ||
                 document.querySelector('.article-body') ||
                 document.querySelector('[data-testid="article-body"]') ||
@@ -49,7 +49,6 @@ function extractCleanContent() {
     )[0] || document.body;
   }
 
-  // 3. Set per tracciare elementi già processati
   const processedElements = new Set();
   const cleanClone = document.createElement('div');
   
@@ -113,7 +112,7 @@ function extractCleanContent() {
   });
 
   const metadata = {
-    title: extractMainTitle() || document.title.replace(/\s*\|.*$/, '').substring(0, 100) || 'Senza titolo',
+    title: extractMainTitle() || document.title.replace(/\s*\|.*$/, '').substring(0, 100) || 'No title',
     url: location.href,
     author: findAuthor(),
     siteName: location.hostname
@@ -138,7 +137,6 @@ function extractCleanContent() {
   };
 }
 
-// NUOVA FUNZIONE: Estrae contenuto da JSON-LD (Il Sole 24 Ore, ecc.)
 function extractFromJsonLd() {
   const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
   
@@ -146,7 +144,6 @@ function extractFromJsonLd() {
     try {
       const data = JSON.parse(script.textContent);
       
-      // Cerca NewsArticle o Article
       let articleData = data;
       if (Array.isArray(data)) {
         articleData = data.find(item => 
@@ -156,7 +153,6 @@ function extractFromJsonLd() {
       
       if (!articleData || !articleData.articleBody) continue;
       
-      // Estrai i dati
       const title = articleData.headline || articleData.name || '';
       const author = articleData.author?.name || articleData.author || '';
       const datePublished = articleData.datePublished || '';
@@ -164,7 +160,6 @@ function extractFromJsonLd() {
       
       if (!articleBody || articleBody.length < 100) continue;
       
-      // Converti il testo in HTML paragrafi
       const paragraphs = articleBody
         .split(/\n\n+/)
         .filter(p => p.trim().length > 20)
@@ -303,7 +298,7 @@ function makeXHTMLCompliant(html) {
 
 function extractMainTitle() {
   const selectors = [
-    'h1.aentry-title', // Il Sole 24 Ore
+    'h1.aentry-title',
     'h1.art_title',
     'h1.heading-one',
     'article h1:first-of-type',
@@ -343,5 +338,5 @@ function findAuthor() {
       }
     }
   }
-  return 'Autore sconosciuto';
+  return 'Unknown author';
 }

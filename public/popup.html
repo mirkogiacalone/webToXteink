@@ -1,130 +1,325 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebToXteink</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --color-primary: #06B6D4;
+      --color-primary-hover: #0891B2;
+      --color-primary-muted: rgba(6, 182, 212, 0.1);
+      --color-secondary: #475569;
+      --color-secondary-hover: #334155;
+      --color-accent: #8B5CF6;
+      --color-accent-hover: #7C3AED;
+      --color-success: #14B8A6;
+      --color-success-hover: #0D9488;
+      --color-warning: #F59E0B;
+      --color-warning-hover: #D97706;
+      --color-danger: #DC2626;
+      --color-danger-hover: #B91C1C;
+      --color-bg-primary: #0F172A;
+      --color-bg-secondary: #1E293B;
+      --color-bg-tertiary: #334155;
+      --color-bg-card: #1E293B;
+      --color-text-primary: #F8FAFC;
+      --color-text-secondary: #CBD5E1;
+      --color-text-muted: #64748B;
+      --color-border: #334155;
+      --color-border-light: #475569;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
     body {
       width: 400px;
       min-height: 500px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
       margin: 0;
-      padding: 16px;
-      background: #f5f5f5;
+      padding: 0;
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(circle at 30% 20%, rgba(6, 182, 212, 0.08), transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.05), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(20, 184, 166, 0.06), transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+      animation: float 20s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(-20px, 20px) rotate(5deg); }
+    }
+    
+    .container {
+      position: relative;
+      z-index: 1;
+      padding: 24px;
     }
     
     h2 {
-      margin: 0 0 16px 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    h2::before {
+      content: '📚';
+      font-size: 28px;
+      filter: drop-shadow(0 2px 4px rgba(6, 182, 212, 0.3));
+    }
+    
+    .subtitle {
+      margin: 0 0 20px 0;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      font-weight: 400;
+      letter-spacing: 0.01em;
     }
     
     h3 {
-      margin: 16px 0 8px 0;
-      font-size: 14px;
+      margin: 0 0 12px 0;
+      font-size: 15px;
       font-weight: 600;
-      color: #666;
+      color: var(--color-text-primary);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     
     button {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 8px;
-      border: none;
-      border-radius: 6px;
+      padding: 12px 18px;
+      margin-bottom: 10px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-family: 'Sora', sans-serif;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translate(-50%, -50%);
+      transition: width 0.5s, height 0.5s;
+    }
+    
+    button:hover:not(:disabled)::before {
+      width: 300px;
+      height: 300px;
     }
     
     button:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    button:active:not(:disabled) {
+      transform: translateY(0);
     }
     
     button:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
     }
     
     .btn-primary {
-      background: #2563eb;
+      background: linear-gradient(135deg, var(--color-primary) 0%, #0891B2 100%);
       color: white;
+      box-shadow: var(--shadow-sm), var(--shadow-glow);
+      border-color: rgba(6, 182, 212, 0.2);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: var(--shadow-md), var(--shadow-glow);
+      border-color: rgba(6, 182, 212, 0.4);
     }
     
     .btn-secondary {
-      background: #64748b;
-      color: white;
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-secondary);
+      border-color: var(--color-border);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--color-secondary-hover);
+      border-color: var(--color-border-light);
     }
     
     .btn-success {
-      background: #10b981;
+      background: linear-gradient(135deg, var(--color-success) 0%, #0D9488 100%);
       color: white;
+      box-shadow: var(--shadow-sm);
+      border-color: rgba(20, 184, 166, 0.2);
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      box-shadow: var(--shadow-md);
+      border-color: rgba(20, 184, 166, 0.4);
     }
     
     .btn-danger {
-      background: #ef4444;
-      color: white;
+      background: var(--color-bg-tertiary);
+      color: #F87171;
+      border-color: rgba(220, 38, 38, 0.2);
+    }
+    
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: rgba(220, 38, 38, 0.4);
     }
     
     .btn-info {
-      background: #8b5cf6;
+      background: linear-gradient(135deg, var(--color-accent) 0%, #7C3AED 100%);
       color: white;
+      box-shadow: var(--shadow-sm);
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+    
+    .btn-info:hover:not(:disabled) {
+      box-shadow: var(--shadow-md);
+      border-color: rgba(139, 92, 246, 0.4);
     }
     
     #page-list {
-      background: white;
-      border-radius: 8px;
+      background: var(--color-bg-card);
+      border-radius: 12px;
       margin: 16px 0;
       max-height: 200px;
       overflow-y: auto;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-md);
+    }
+    
+    #page-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #page-list::-webkit-scrollbar-track {
+      background: var(--color-bg-secondary);
+      border-radius: 4px;
+    }
+    
+    #page-list::-webkit-scrollbar-thumb {
+      background: var(--color-border-light);
+      border-radius: 4px;
+    }
+    
+    #page-list::-webkit-scrollbar-thumb:hover {
+      background: var(--color-text-muted);
     }
     
     #stats {
-      padding: 8px;
-      background: #e5e7eb;
-      border-radius: 4px;
+      padding: 14px 18px;
+      background: var(--color-bg-card);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
       text-align: center;
       font-size: 13px;
-      color: #374151;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--color-text-secondary);
       margin-bottom: 16px;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-md);
+      letter-spacing: 0.02em;
     }
     
     #xteink-section {
       display: none;
-      margin-top: 20px;
-      padding: 16px;
-      background: white;
-      border-radius: 8px;
-      border: 2px solid #2563eb;
+      margin-top: 24px;
+      padding: 20px;
+      background: var(--color-bg-card);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      border: 1px solid var(--color-primary);
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+      position: relative;
+    }
+    
+    #xteink-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--color-primary) 50%, 
+        transparent 100%
+      );
+      border-radius: 12px 12px 0 0;
     }
     
     #xteink-status {
-      padding: 12px;
+      padding: 14px 16px;
       margin: 12px 0;
-      border-radius: 6px;
+      border-radius: 10px;
       font-size: 13px;
+      font-weight: 500;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     
     .status-success {
-      background: #d1fae5;
-      color: #065f46;
-      border: 1px solid #10b981;
+      background: rgba(20, 184, 166, 0.1);
+      color: #5EEAD4;
+      border: 1px solid rgba(20, 184, 166, 0.3);
     }
     
     .status-warning {
-      background: #fef3c7;
-      color: #92400e;
-      border: 1px solid #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+      color: #FCD34D;
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
     
     .status-error {
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #ef4444;
+      background: rgba(220, 38, 38, 0.1);
+      color: #FCA5A5;
+      border: 1px solid rgba(220, 38, 38, 0.3);
     }
     
     #xteink-progress {
@@ -134,67 +329,121 @@
     
     progress {
       width: 100%;
-      height: 24px;
-      border-radius: 4px;
+      height: 6px;
+      border-radius: 3px;
+      border: none;
+      background: var(--color-bg-secondary);
+      overflow: hidden;
+    }
+    
+    progress::-webkit-progress-bar {
+      background: var(--color-bg-secondary);
+      border-radius: 3px;
+    }
+    
+    progress::-webkit-progress-value {
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    
+    progress::-moz-progress-bar {
+      background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+      border-radius: 3px;
     }
     
     #xteink-progress-text {
       display: block;
       text-align: center;
-      margin-top: 4px;
+      margin-top: 8px;
       font-size: 12px;
-      color: #666;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--color-text-muted);
+      letter-spacing: 0.05em;
     }
     
     #xteink-result {
       margin-top: 12px;
-      padding: 12px;
-      border-radius: 6px;
+      padding: 14px 16px;
+      border-radius: 10px;
       font-size: 13px;
       max-height: 200px;
       overflow-y: auto;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.6;
     }
     
     #xteink-settings {
       display: none;
       margin-top: 12px;
-      padding: 12px;
-      background: #f9fafb;
-      border-radius: 6px;
+      padding: 18px;
+      background: var(--color-bg-secondary);
+      border-radius: 10px;
+      border: 1px solid var(--color-border);
     }
     
     .form-group {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
     }
     
     label {
       display: block;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 500;
-      color: #374151;
-      margin-bottom: 4px;
+      color: var(--color-text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
     }
     
     input {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      font-size: 13px;
-      box-sizing: border-box;
+      padding: 11px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      transition: all 0.2s ease;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: var(--color-bg-secondary);
+      box-shadow: 0 0 0 3px var(--color-primary-muted);
+    }
+    
+    input::placeholder {
+      color: var(--color-text-muted);
+    }
+    
+    small {
+      color: var(--color-text-muted);
+      font-size: 11px;
+      display: block;
+      margin-top: 6px;
+      line-height: 1.4;
     }
     
     .btn-small {
-      padding: 6px 12px;
-      font-size: 12px;
+      padding: 9px 16px;
+      font-size: 13px;
       width: auto;
       display: inline-block;
-      margin-right: 4px;
+      margin-right: 6px;
     }
     
     .btn-row {
       display: flex;
-      gap: 4px;
+      gap: 8px;
       margin-bottom: 12px;
     }
     
@@ -202,62 +451,81 @@
       flex: 1;
       margin-bottom: 0;
     }
+    
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 14px;
+    }
+    
+    .empty-state::before {
+      content: '📄';
+      display: block;
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.3;
+    }
   </style>
 </head>
 <body>
-  <h2>📚 Web To Xteink</h2>
-  
-  <div id="stats">0 pagine • 0 parole</div>
-  
-  <button id="add-page" class="btn-primary">➕ Add page</button>
-  <button id="generate-epub" class="btn-success" disabled>📖 EPUB Download</button>
-  <button id="send-epub" class="btn-success" disabled>📖 Send to Xteink</button>
-  <button id="clear-all" class="btn-danger" disabled>🗑️ Remove All</button>
-  
-  <div id="page-list">
-    <div style="padding:30px;text-align:center;color:#999">Nessuna pagina</div>
-  </div>
-  
-  <!-- Xteink Section -->
-  <div id="xteink-section">
-    <h3>📡 Invia a Xteink X4</h3>
+  <div class="container">
+    <h2>Web To Xteink</h2>
+    <p class="subtitle">Collect web pages and send to your e-reader</p>
     
-    <div id="xteink-status">
-      🔍 Premi "Rileva" per cercare il dispositivo
-    </div>
+    <div id="stats">0 pages • 0 words</div>
     
-    <!-- NUOVO: Bottoni in riga -->
-    <div class="btn-row">
-      <button id="detect-xteink" class="btn-primary">🔍 Rileva</button>
-      <button id="run-diagnostics" class="btn-info">🔧 Test</button>
-      <button id="xteink-settings-btn" class="btn-secondary">⚙️ Setup</button>
-    </div>
-    
-    <div id="xteink-settings">
-      <div class="form-group">
-        <label for="xteink-ip">IP Dispositivo:</label>
-        <input type="text" id="xteink-ip" value="192.168.3.3" placeholder="192.168.3.3">
-        <small style="color:#666;font-size:11px">Stock: 192.168.3.3 | CrossPoint: 192.168.4.1</small>
+    <button id="add-page" class="btn-primary">➕ Add Current Page</button>
+    <button id="generate-epub" class="btn-success" disabled>📖 Download EPUB</button>
+    <button id="send-epub" class="btn-secondary" disabled>📖 Send to X4</button>
+    <button id="clear-all" class="btn-danger" disabled>🗑️ Clear All Pages</button>
+
+    <!-- Xteink Section -->
+    <div id="xteink-section">
+      <h3>📡 Send to Xteink X4</h3>
+      
+      <div id="xteink-status">
+        🔍 Click "Detect" to search for your device
       </div>
       
-      <div class="form-group">
-        <label for="xteink-port">Porta:</label>
-        <input type="number" id="xteink-port" value="80" placeholder="80">
+      <div class="btn-row">
+        <button id="detect-xteink" class="btn-primary">🔍 Detect</button>
+        <button id="run-diagnostics" class="btn-info">🔧 Test</button>
+        <button id="xteink-settings-btn" class="btn-secondary">⚙️ Settings</button>
       </div>
       
-      <button id="save-xteink-settings" class="btn-success btn-small">💾 Salva</button>
+      <div id="xteink-settings">
+        <div class="form-group">
+          <label for="xteink-ip">Device IP Address:</label>
+          <input type="text" id="xteink-ip" value="192.168.3.3" placeholder="192.168.3.3">
+          <small>Stock Firmware: 192.168.3.3 | CrossPoint: 192.168.4.1</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="xteink-port">Port:</label>
+          <input type="number" id="xteink-port" value="80" placeholder="80">
+        </div>
+        
+        <button id="save-xteink-settings" class="btn-success btn-small">💾 Save Settings</button>
+      </div>
+      
+      <button id="send-to-xteink" class="btn-success" disabled style="margin-top:12px">
+        📡 Send to Xteink
+      </button>
+      
+      <div id="xteink-progress">
+        <progress id="xteink-progress-bar" value="0" max="100"></progress>
+        <span id="xteink-progress-text">0%</span>
+      </div>
+      
+      <div id="xteink-result"></div>
     </div>
     
-    <button id="send-to-xteink" class="btn-success" disabled style="margin-top:12px">
-      📡 Invia a Xteink
-    </button>
-    
-    <div id="xteink-progress">
-      <progress id="xteink-progress-bar" value="0" max="100"></progress>
-      <span id="xteink-progress-text">0%</span>
+    <div id="page-list">
+      <div class="empty-state">No pages added yet</div>
     </div>
     
-    <div id="xteink-result"></div>
+    
   </div>
   
   <script src="popup.js"></script>

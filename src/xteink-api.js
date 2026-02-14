@@ -1,5 +1,4 @@
 // xteink-api.js
-// Usa endpoint /edit come da API Xteink X4
 
 export class XteinkAPI {
   constructor() {
@@ -44,20 +43,20 @@ export class XteinkAPI {
       });
 
       clearTimeout(timeoutId);
-      console.log('✅ Ping riuscito:', response.status);
+      console.log('✅ Ping ok:', response.status);
 
       return {
         connected: true,
-        message: 'Xteink X4 connesso',
+        message: 'Xteink X4 connected',
         status: response.status
       };
     } catch (error) {
-      console.error('❌ Ping fallito:', error);
+      console.error('❌ Ping failed:', error);
       
       if (error.name === 'AbortError') {
         return {
           connected: false,
-          error: 'Timeout - Dispositivo non raggiungibile'
+          error: 'Timeout - Device unreachable'
         };
       }
       
@@ -75,25 +74,22 @@ export class XteinkAPI {
    */
   async uploadEPUB(epubBuffer, filename, onProgress) {
     try {
-      console.log('📤 Inizio upload EPUB');
+      console.log('📤 Start upload EPUB');
       console.log('📦 Size:', epubBuffer.length, 'bytes');
       console.log('📄 Filename:', filename);
 
       if (onProgress) onProgress(10);
 
-      // Step 1: Verifica/crea cartella (opzionale, fallback su root)
       const folderReady = await this.ensureFolderExists(this.settings.targetFolder);
       
       if (onProgress) onProgress(30);
 
-      // Step 2: Determina path
       const uploadPath = folderReady
         ? `/${this.settings.targetFolder}/${filename}`
         : `/${filename}`;
 
       console.log('📍 Upload path:', uploadPath);
 
-      // Step 3: Upload file con /edit endpoint
       const result = await this.uploadFile(epubBuffer, uploadPath, onProgress);
 
       if (onProgress) onProgress(100);
@@ -101,19 +97,17 @@ export class XteinkAPI {
       return result;
 
     } catch (error) {
-      console.error('❌ Errore upload:', error);
+      console.error('❌ Error:', error);
       throw error;
     }
   }
 
   async ensureFolderExists(folderName) {
     try {
-      console.log('🔍 Verifica cartella:', folderName);
 
       const exists = await this.folderExists(folderName);
 
       if (exists) {
-        console.log('✅ Cartella già esistente');
         return true;
       }
 
@@ -121,7 +115,7 @@ export class XteinkAPI {
       return await this.createFolder(folderName);
 
     } catch (error) {
-      console.warn('⚠️ Errore gestione cartella, upload in root:', error);
+      console.warn('⚠️ Folder management error, upload to root:', error);
       return false;
     }
   }
@@ -156,13 +150,10 @@ export class XteinkAPI {
     }
   }
 
-  /**
-   * ✅ Crea cartella con PUT /edit
-   */
   async createFolder(folderName) {
     try {
       const formData = new FormData();
-      formData.append('path', `/${folderName}/`); // Slash finale importante!
+      formData.append('path', `/${folderName}/`);
 
       const createUrl = this.getBaseUrl() + this.settings.uploadEndpoint;
       console.log('📁 PUT folder a:', createUrl);
@@ -191,19 +182,14 @@ export class XteinkAPI {
     }
   }
 
-  /**
-   * ✅ Upload file con POST /edit
-   * IMPORTANTE: Campo "data" (non "file")!
-   */
   async uploadFile(epubBuffer, path, onProgress) {
     try {
       const blob = new Blob([epubBuffer], { type: 'application/epub+zip' });
       
-      // ✅ File con path completo come nome
       const file = new File([blob], path, { type: 'application/epub+zip' });
       
       const formData = new FormData();
-      formData.append('data', file, path); // ✅ Campo "data"!
+      formData.append('data', file, path);
 
       const uploadUrl = this.getBaseUrl() + this.settings.uploadEndpoint;
       console.log('📤 POST file a:', uploadUrl);
@@ -301,18 +287,15 @@ export class XteinkAPI {
       tests: {}
     };
 
-    console.log('🔧 DIAGNOSTICA XTEINK X4');
+    console.log('🔧 DIAGNOSTIC XTEINK X4');
     console.log('========================');
 
-    // Test 1: Ping
-    console.log('Test 1: Connessione...');
+    console.log('Test 1: Connections...');
     results.tests.ping = await this.ping();
 
-    // Test 2: List root
     console.log('Test 2: List root directory...');
     results.tests.listRoot = await this.listFiles('/');
 
-    // Test 3: Verifica endpoint /edit
     console.log('Test 3: Endpoint /edit...');
     try {
       const response = await fetch(
@@ -335,7 +318,6 @@ export class XteinkAPI {
       };
     }
 
-    // Test 4: Verifica cartella target
     console.log('Test 4: Target folder...');
     try {
       const exists = await this.folderExists(this.settings.targetFolder);
@@ -349,7 +331,7 @@ export class XteinkAPI {
       };
     }
 
-    console.log('📊 Diagnostica completata:', results);
+    console.log('📊 Diagnostic completed:', results);
     return results;
   }
 
@@ -381,5 +363,4 @@ export class XteinkAPI {
   }
 }
 
-// Export singleton
 export const xteinkAPI = new XteinkAPI();

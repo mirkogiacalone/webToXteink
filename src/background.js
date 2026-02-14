@@ -5,7 +5,6 @@ import { xteinkAPI } from './xteink-api.js';
 let pages = [];
 let lastGeneratedEPUB = null;
 
-// Listener messaggi
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
     case 'getPages': {
@@ -34,8 +33,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
 
+    case 'downloadEPUB': {
+      downloadEPUB()
+        .then(result => sendResponse(result))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+    }
+
     case 'clearAll': {
       pages = [];
+      lastGeneratedEPUB = null;
       chrome.storage.local.remove(['pages']);
       chrome.action.setBadgeText({ text: '' });
       sendResponse({ success: true });
@@ -70,23 +77,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
 
+    case 'runDiagnostics': {
+      runXteinkDiagnostics()
+        .then(result => sendResponse(result))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+    }
+
     default:
       sendResponse({ error: 'Azione sconosciuta' });
   }
   return true;
 });
 
-// FUNZIONE CORRETTA: Escape HTML con validazione tipo
 function escapeHtml(text) {
-  // Converti a stringa e gestisci valori nulli/undefined
   if (text === null || text === undefined) {
     return '';
   }
   
-  // Converti qualsiasi tipo a stringa
   const str = String(text);
   
-  // Escape caratteri HTML
   const map = {
     '&': '&amp;',
     '<': '&lt;',
@@ -98,17 +108,14 @@ function escapeHtml(text) {
   return str.replace(/[&<>"']/g, m => map[m]);
 }
 
-// Genera EPUB
 async function generateEPUB(title, saveForXteink = false) {
   try {
-    console.log('📦 Inizio generazione EPUB:', title);
+    console.log('📦 Start EPUB generation:', title);
     
     const zip = new JSZip();
     
-    // mimetype (DEVE essere primo, NON compresso)
     zip.file('mimetype', 'application/epub+zip', {compression: 'STORE'});
     
-    // META-INF/container.xml
     zip.folder('META-INF').file('container.xml', 
 `<?xml version="1.0" encoding="UTF-8"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
@@ -119,11 +126,10 @@ async function generateEPUB(title, saveForXteink = false) {
     
     const oebps = zip.folder('OEBPS');
     
-    // Capitoli XHTML validi
+    // valid XHTML chapters
     pages.forEach((page, index) => {
-      // Validazione sicura dei dati della pagina
-      const pageTitle = escapeHtml(page?.metadata?.title || `Capitolo ${index + 1}`);
-      const pageContent = page?.content || '<p>Contenuto non disponibile</p>';
+      const pageTitle = escapeHtml(page?.metadata?.title || `Chapter ${index + 1}`);
+      const pageContent = page?.content || '<p>Content unavailable</p>';
       
       oebps.file(`chapter${index + 1}.xhtml`, 
 `<?xml version="1.0" encoding="UTF-8"?>
@@ -161,7 +167,6 @@ async function generateEPUB(title, saveForXteink = false) {
 </html>`);
     });
     
-    // content.opf (metadata EPUB 3.0)
     const manifestItems = pages.map((_, i) => 
       `    <item id="chapter${i+1}" href="chapter${i+1}.xhtml" media-type="application/xhtml+xml"/>`
     ).join('\n');
@@ -193,7 +198,6 @@ ${spineItems}
   </spine>
 </package>`);
     
-    // toc.ncx (table of contents NCX 2005-1)
     const navPoints = pages.map((page, i) => {
       const navTitle = escapeHtml(page?.metadata?.title || `Capitolo ${i + 1}`);
       return `    <navPoint id="navpoint-${i+1}" playOrder="${i+1}">
@@ -222,8 +226,7 @@ ${navPoints}
   </navMap>
 </ncx>`);
     
-    // Genera ZIP con ordine corretto
-    console.log('🔧 Compressione ZIP EPUB...');
+    console.log('🔧 ZIP Compression EPUB...');
     const epubBuffer = await zip.generateAsync({
       type: 'uint8array',
       mimeType: 'application/epub+zip',
@@ -233,35 +236,18 @@ ${navPoints}
       }
     });
     
-    console.log(`✅ EPUB generato: ${epubBuffer.length} bytes`);
+    console.log(`✅ EPUB generated: ${epubBuffer.length} bytes`);
     
-    // Sanitizza il filename
     const safeTitle = String(title).replace(/[^a-zA-Z0-9\s\-_]/g, '_').substring(0, 200);
     const filename = `${safeTitle}.epub`;
     
-    // Salva SEMPRE per invio Xteink
     lastGeneratedEPUB = {
       buffer: epubBuffer,
       filename: filename,
       timestamp: Date.now()
     };
     
-    // Download automatico
-    const epubBase64 = btoa(String.fromCharCode.apply(null, epubBuffer));
-    const dataUrl = `data:application/epub+zip;base64,${epubBase64}`;
-    
-    chrome.downloads.download({
-      url: dataUrl,
-      filename: filename,
-      saveAs: false,
-      conflictAction: 'uniquify'
-    }, (downloadId) => {
-      if (chrome.runtime.lastError) {
-        console.error('❌ Errore download:', chrome.runtime.lastError);
-      } else {
-        console.log('✅ EPUB scaricato automaticamente! ID:', downloadId);
-      }
-    });
+    console.log('💾 EPUB salvato in memoria per download/invio');
     
     return { success: true, saved: true, filename };
     
@@ -271,24 +257,61 @@ ${navPoints}
   }
 }
 
-// Rileva Xteink X4 sulla rete
+async function downloadEPUB() {
+  if (!lastGeneratedEPUB) {
+    throw new Error('No EPUB generated. Generate an EPUB first.');
+  }
+
+  try {
+    console.log('📥 Download EPUB:', lastGeneratedEPUB.filename);
+    
+    const epubBase64 = btoa(String.fromCharCode.apply(null, lastGeneratedEPUB.buffer));
+    const dataUrl = `data:application/epub+zip;base64,${epubBase64}`;
+    
+    chrome.downloads.download({
+      url: dataUrl,
+      filename: lastGeneratedEPUB.filename,
+      saveAs: false,
+      conflictAction: 'uniquify'
+    }, (downloadId) => {
+      if (chrome.runtime.lastError) {
+        console.error('❌ Error:', chrome.runtime.lastError);
+        throw new Error(chrome.runtime.lastError.message);
+      } else {
+        console.log('✅ EPUB downloaded! ID:', downloadId);
+      }
+    });
+    
+    return { success: true, filename: lastGeneratedEPUB.filename };
+  } catch (error) {
+    console.error('❌ Error:', error);
+    throw error;
+  }
+}
+
 async function detectXteinkDevice() {
   await xteinkAPI.loadSettings();
   const result = await xteinkAPI.ping();
-  console.log('🔍 Rilevamento Xteink:', result);
+  console.log('🔍 Detection:', result);
   return result;
 }
 
-// Upload EPUB a Xteink
+// Diagnostica Xteink
+async function runXteinkDiagnostics() {
+  await xteinkAPI.loadSettings();
+  const diagnostics = await xteinkAPI.diagnostics();
+  console.log('🔧 Diagnostics:', diagnostics);
+  return { success: true, diagnostics };
+}
+
 async function uploadEPUBToXteink(filename) {
   if (!lastGeneratedEPUB) {
-    throw new Error('Nessun EPUB generato da inviare');
+    throw new Error('No EPUB generated');
   }
 
-  // Verifica se EPUB non è troppo vecchio (5 minuti)
   const age = Date.now() - lastGeneratedEPUB.timestamp;
   if (age > 5 * 60 * 1000) {
-    throw new Error('EPUB scaduto, rigenera prima di inviare');
+    throw new Error('EPUB expired');
   }
 
   await xteinkAPI.loadSettings();
@@ -305,11 +328,10 @@ async function uploadEPUBToXteink(filename) {
     }
   );
 
-  console.log('✅ Upload completato:', result);
+  console.log('✅ Upload completed:', result);
   return result;
 }
 
-// Inizializza storage
 chrome.storage.local.get(['pages'], (result) => {
   pages = result.pages || [];
   chrome.action.setBadgeText({ text: pages.length > 0 ? pages.length.toString() : '' });

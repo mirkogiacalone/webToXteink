@@ -35,7 +35,7 @@ export class XteinkAPI {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      console.log('🔍 Ping a:', this.getBaseUrl());
+      console.log('🔍 Ping:', this.getBaseUrl());
 
       const response = await fetch(this.getBaseUrl() + '/', {
         method: 'GET',
@@ -109,7 +109,7 @@ export class XteinkAPI {
         return true;
       }
 
-      console.log('📁 Creazione cartella:', folderName);
+      console.log('📁 Folder creation:', folderName);
       return await this.createFolder(folderName);
 
     } catch (error) {
@@ -222,7 +222,7 @@ async uploadFile(epubBuffer, path, onProgress) {
 
     if (response.ok) {
       const responseText = await response.text();
-      console.log('✅ Upload completato!');
+      console.log('✅ Upload completed!');
       console.log('📄 Response:', responseText);
 
       return {

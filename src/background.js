@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     case 'generateEPUB': {
-      const title = request.metadata?.title || 'Raccolta Web';
+      const title = request.metadata?.title || 'Web';
       generateEPUB(title, request.saveForXteink || false)
         .then(result => sendResponse(result))
         .catch(error => sendResponse({ success: false, error: error.message }));
@@ -85,7 +85,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     default:
-      sendResponse({ error: 'Azione sconosciuta' });
+      sendResponse({ error: 'Unknow action' });
   }
   return true;
 });
@@ -161,7 +161,6 @@ async function generateEPUB(title, saveForXteink = false) {
   </style>
 </head>
 <body>
-  <h1>${pageTitle}</h1>
   ${pageContent.substring(0, 100000)}
 </body>
 </html>`);
@@ -199,7 +198,7 @@ ${spineItems}
 </package>`);
     
     const navPoints = pages.map((page, i) => {
-      const navTitle = escapeHtml(page?.metadata?.title || `Capitolo ${i + 1}`);
+      const navTitle = escapeHtml(page?.metadata?.title || `Chapter ${i + 1}`);
       return `    <navPoint id="navpoint-${i+1}" playOrder="${i+1}">
       <navLabel>
         <text>${navTitle}</text>
@@ -247,12 +246,12 @@ ${navPoints}
       timestamp: Date.now()
     };
     
-    console.log('💾 EPUB salvato in memoria per download/invio');
+    console.log('💾 EPUB saved in memory');
     
     return { success: true, saved: true, filename };
     
   } catch (error) {
-    console.error('❌ Errore generazione EPUB:', error);
+    console.error('❌ EPUB Generation Error:', error);
     throw error;
   }
 }
@@ -296,7 +295,6 @@ async function detectXteinkDevice() {
   return result;
 }
 
-// Diagnostica Xteink
 async function runXteinkDiagnostics() {
   await xteinkAPI.loadSettings();
   const diagnostics = await xteinkAPI.diagnostics();

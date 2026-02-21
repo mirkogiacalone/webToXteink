@@ -26,7 +26,6 @@ function extractCleanContent() {
     return jsonLdContent;
   }
 
-  // 2. HTML
   let article = document.querySelector('.atext') ||
                 document.querySelector('.art_content') ||
                 document.querySelector('.article-body') ||
@@ -55,6 +54,12 @@ function extractCleanContent() {
   const contentElements = article.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, code, img, figure, strong, em, b, i');
   
   contentElements.forEach(el => {
+ 
+    if (el.tagName.toLowerCase() === 'h1') {
+      processedElements.add(el);
+      return;
+    }
+
     if (processedElements.has(el)) return;
     
     let parent = el.parentElement;
@@ -121,12 +126,8 @@ function extractCleanContent() {
   const text = cleanClone.textContent || '';
   const wordCount = text.split(/\s+/).filter(w => w.length > 2).length;
 
-  let content = cleanClone.innerHTML;
-  
-  if (!content.includes('<h1>')) {
-    content = `<h1>${metadata.title}</h1>\n${content}`;
-  }
-  
+
+  let content = `<h1>${metadata.title}</h1>\n${cleanClone.innerHTML}`;
   content = makeXHTMLCompliant(content);
 
   return {
